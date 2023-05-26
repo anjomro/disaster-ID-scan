@@ -9,12 +9,28 @@
 **Table of Contents**
 
 - [Installation](#installation)
+- [Usage](#usage)
 - [License](#license)
 
 ## Installation
 
 ```console
 pip install disaster-id-scan
+```
+
+## Usage
+
+Currently the scanner only features the scanning mode. It can be started as follows, given that the package is [installed](#installation):
+
+
+```console
+disaster-id-scan scan
+```
+
+This will use the first camera available. To select a specific camera, use the `--cam` option:
+
+```console
+disaster-id-scan scan --cam 1
 ```
 
 ## License
