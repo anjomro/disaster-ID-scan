@@ -28,6 +28,7 @@ dependencies = [
   "click",
   "easyocr",
   "opencv-python",
+  "toga"
 ]
 
 [project.urls]
