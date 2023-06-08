@@ -1,48 +1,209 @@
-from pathlib import Path
+import tkinter as tk
+from tkinter import ttk
+from tkinter import filedialog
+import cv2
+from PIL import ImageTk, Image
+import threading
+import easyocr
+from tkcalendar import DateEntry
 
-import toga
-from toga.style.pack import COLUMN, LEFT, RIGHT, ROW, Pack, BOTTOM
+from disaster_id_scan.mrz import check_if_valid_mrz, get_data_from_mrz
 
+def get_available_cameras():
+    camera_indexes = []
+    for i in range(10):
+        cap = cv2.VideoCapture(i)
+        if cap.read()[0]:
+            camera_indexes.append(i)
+        cap.release()
+    return camera_indexes
 
-class DisasterUI(toga.App):
-    directory: Path
+class VideoStreamer:
+    def __init__(self, camera_index, image_label):
+        self.camera_index = camera_index
+        self.image_label = image_label
+        self.is_running = False
+        self.cap = None
 
-    def startup(self):
-        # Main window of the application with title and size
-        self.main_window = toga.Window(title="Disaster ID Scanner")
+    def start(self):
+        self.cap = cv2.VideoCapture(self.camera_index)
+        self.is_running = True
+        self.show_frame()
 
-        box = toga.Box(style=Pack(direction=ROW, padding_top=100, alignment=BOTTOM))
+    def stop(self):
+        self.is_running = False
+        if self.cap:
+            self.cap.release()
 
-        kangoroo_example_image = toga.Image("/home/anjomro/repos/disaster-id-scan/300x200.jpg")
-        image_view = toga.ImageView(kangoroo_example_image, id="preview", style=Pack(width=300, height=200))
+    def show_frame(self):
+        if not self.is_running:
+            return
 
-        select_dialogue = toga.Button("Select directory", on_press=self.select_directory_ui)
-        start_video = toga.Button("Start Video")
+        _, frame = self.cap.read()
+        frame = cv2.flip(frame, 1)  # Flip the frame horizontally
+        cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(cv2image)
+        imgtk = ImageTk.PhotoImage(image=img)
+        self.image_label.imgtk = imgtk
+        self.image_label.configure(image=imgtk)
+        self.image_label.after(10, self.show_frame)  # Update the frame every 10 milliseconds
 
-        control_box = toga.Box(children=[
-            start_video,
-            select_dialogue
-        ])
-        box.add(image_view)
-        box.add(control_box)
+class GUI:
+    def __init__(self):
+        self.window = tk.Tk()
+        self.window.title("Simple GUI")
+        self.style = ttk.Style()
+        self.style.theme_use("clam")
 
-        # Add the content on the main window
-        self.main_window.content = box
+        self.image_label = tk.Label(self.window)
+        self.image_label.pack(pady=10)
 
-        # Show the main window
-        self.main_window.show()
-        self.select_directory_ui()
+        self.frame = tk.Frame(self.window)
+        self.frame.pack()
 
-    def selected_path(self, caller, path: Path):
-        if path is None:
-            print("Please Select a Path")
+        self.camera_indexes = get_available_cameras()
+
+        self.camera_label = ttk.Label(self.frame, text="Camera:")
+        self.camera_label.grid(row=0, column=0, padx=5)
+        self.camera_combobox = ttk.Combobox(self.frame, values=self.camera_indexes, state="readonly")
+        self.camera_combobox.current(0)
+        self.camera_combobox.grid(row=0, column=1, padx=5)
+
+        self.buttons_frame = tk.Frame(self.window)
+        self.buttons_frame.pack()
+
+        self.button1 = ttk.Button(self.buttons_frame, text="Start video", command=self.button1_click)
+        self.button2 = ttk.Button(self.buttons_frame, text="Recognize Text", command=self.button2_click)
+        self.button3 = ttk.Button(self.buttons_frame, text="Select Data Folder", command=self.button3_click)
+        self.button1.grid(row=0, column=0, padx=5)
+        self.button2.grid(row=0, column=1, padx=5)
+        self.button3.grid(row=0, column=2, padx=5)
+
+        self.data_frame = ttk.Frame(self.window)
+        self.data_frame.pack(pady=10)
+
+        self.first_name_label = ttk.Label(self.data_frame, text="First Name:")
+        self.first_name_label.grid(row=0, column=0, padx=5, pady=5)
+        self.first_name_entry = ttk.Entry(self.data_frame)
+        self.first_name_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        self.last_name_label = ttk.Label(self.data_frame, text="Last Name:")
+        self.last_name_label.grid(row=1, column=0, padx=5, pady=5)
+        self.last_name_entry = ttk.Entry(self.data_frame)
+        self.last_name_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        self.date_of_birth_label = ttk.Label(self.data_frame, text="Date of Birth:")
+        self.date_of_birth_label.grid(row=2, column=0, padx=5, pady=5)
+        self.date_of_birth_entry = DateEntry(self.data_frame)
+        self.date_of_birth_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        self.nationality_label = ttk.Label(self.data_frame, text="Nationality:")
+        self.nationality_label.grid(row=3, column=0, padx=5, pady=5)
+        self.nationality_entry = ttk.Entry(self.data_frame)
+        self.nationality_entry.grid(row=3, column=1, padx=5, pady=5)
+
+        self.residence_label = ttk.Label(self.data_frame, text="Residence:")
+        self.residence_label.grid(row=0, column=2, padx=5, pady=5)
+        self.residence_entry = ttk.Entry(self.data_frame)
+        self.residence_entry.grid(row=0, column=3, padx=5, pady=5)
+
+        self.place_of_catastrophe_label = ttk.Label(self.data_frame, text="Place of Catastrophe:")
+        self.place_of_catastrophe_label.grid(row=1, column=2, padx=5, pady=5)
+        self.place_of_catastrophe_entry = ttk.Entry(self.data_frame)
+        self.place_of_catastrophe_entry.grid(row=1, column=3, padx=5, pady=5)
+
+        self.place_of_shelter_label = ttk.Label(self.data_frame, text="Place of Shelter:")
+        self.place_of_shelter_label.grid(row=2, column=2, padx=5, pady=5)
+        self.place_of_shelter_entry = ttk.Entry(self.data_frame)
+        self.place_of_shelter_entry.grid(row=2, column=3, padx=5, pady=5)
+
+        self.date_of_catastrophe_label = ttk.Label(self.data_frame, text="Date of Catastrophe:")
+        self.date_of_catastrophe_label.grid(row=3, column=2, padx=5, pady=5)
+        self.date_of_catastrophe_entry = DateEntry(self.data_frame)
+        self.date_of_catastrophe_entry.grid(row=3, column=3, padx=5, pady=5)
+
+        self.error_label = tk.Label(self.window, text="", fg="red")
+        self.error_label.pack()
+
+        self.video_streamer = None
+        self.data_folder_selected = False
+
+        self.submit_button = ttk.Button(self.window, text="Submit", command=self.submit_click)
+        self.reset_button = ttk.Button(self.window, text="Reset", command=self.clear_click)
+        self.submit_button.pack(side=tk.LEFT, padx=5, pady=10)
+        self.reset_button.pack(side=tk.LEFT, padx=5, pady=10)
+
+    def button1_click(self):
+        if not self.data_folder_selected:
+            self.display_error("Please select a data folder.")
+            return
+
+        if self.video_streamer and self.video_streamer.is_running:
+            self.video_streamer.stop()
+            self.button1.config(text="Start video")
         else:
-            self.directory = path
-        print("fini")
+            camera_index = int(self.camera_combobox.get())
+            self.video_streamer = VideoStreamer(camera_index, self.image_label)
+            self.video_streamer.start()
+            self.button1.config(text="Stop video")
 
-    def select_directory_ui(self, *args):
-        self.main_window.select_folder_dialog(title="Select Saving Location", on_result=self.selected_path)
+    def button2_click(self):
+        if not self.video_streamer or not self.video_streamer.is_running:
+            self.display_error("Please start the video before recognizing text.")
+            return
 
+        frame = self.video_streamer.cap.read()[1]
+        reader = easyocr.Reader(['de'])
+        text = reader.readtext(frame, paragraph=True)
+        print(text)
+
+    def button3_click(self):
+        folder_selected = filedialog.askdirectory()
+        if folder_selected:
+            self.data_folder_selected = True
+            self.display_error("")
+            print("Selected data folder:", folder_selected)
+        else:
+            self.data_folder_selected = False
+            self.display_error("Please select a data folder.")
+
+    def submit_click(self):
+        first_name = self.first_name_entry.get()
+        last_name = self.last_name_entry.get()
+        date_of_birth = self.date_of_birth_entry.get_date()
+        nationality = self.nationality_entry.get()
+        residence = self.residence_entry.get()
+        place_of_catastrophe = self.place_of_catastrophe_entry.get()
+        place_of_shelter = self.place_of_shelter_entry.get()
+        date_of_catastrophe = self.date_of_catastrophe_entry.get_date()
+
+        print("First Name:", first_name)
+        print("Last Name:", last_name)
+        print("Date of Birth:", date_of_birth)
+        print("Nationality:", nationality)
+        print("Residence:", residence)
+        print("Place of Catastrophe:", place_of_catastrophe)
+        print("Place of Shelter:", place_of_shelter)
+        print("Date of Catastrophe:", date_of_catastrophe)
+
+    def clear_click(self):
+        self.first_name_entry.delete(0, tk.END)
+        self.last_name_entry.delete(0, tk.END)
+        self.date_of_birth_entry.set_date(None)
+        self.nationality_entry.delete(0, tk.END)
+        self.residence_entry.delete(0, tk.END)
+        self.place_of_catastrophe_entry.delete(0, tk.END)
+        self.place_of_shelter_entry.delete(0, tk.END)
+        self.date_of_catastrophe_entry.set_date(None)
+
+    def display_error(self, message):
+        self.error_label.config(text=message)
+
+    def start_gui(self):
+        self.window.mainloop()
 
 def start_gui():
-    DisasterUI("Disaster ID scan", "de.anjomro.disaster-id-scan").main_loop()
+    gui = GUI()
+    gui.start_gui()
+
+start_gui()
