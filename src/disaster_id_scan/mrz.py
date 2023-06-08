@@ -1,4 +1,6 @@
 from enum import Enum
+from datetime import date, datetime
+from typing import Union
 
 import easyocr
 from mrz.base.errors import FieldError
@@ -19,41 +21,42 @@ def extract_mrz_from_image(image):
     pass
 
 
-def get_mrz_data(possible_mrz: str, td_type: DocumentType = DocumentType.ANY):
-    try:
-        if td_type == DocumentType.ANY:
-            for td in DocumentType:
-                if td == DocumentType.ANY:
-                    # We don't want endless recursion
-                    pass
-                data = get_mrz_data(possible_mrz, td)
-                if data is not None:
-                    return data
-            else:
-                print("No valid MRZ :(")
-                return None
-        elif td_type == DocumentType.TD1:
-            return TD1CodeChecker(possible_mrz)
-        elif td_type == DocumentType.TD2:
-            return TD2CodeChecker(possible_mrz)
-        elif td_type == DocumentType.TD3:
-            return TD3CodeChecker(possible_mrz)
-        else:
-            print("Unknown DocumentType")
-            return None
-    except FieldError as fe:
-        print(f"MRZ Error for {td_type}: {fe}")
-        return None
+def parse_mrz(mrz: str) -> Union[Person, None]:
+    '''Parse MRZ'''
+    # Remove all whitespaces
+    mrz = mrz.replace(" ", "")
+    # Everything in MRZ is uppercase
+    mrz = mrz.upper()
+    # Check if Identity Card or Passport
+    if mrz[0] == "P":
+        # Passport
+        pass  # -port :D
+    elif mrz[0] == "I":
+        # Identity Card
+        return parse_td1(mrz)
+    return None
 
 
-def get_data_from_mrz(mrz: str):
-    '''Parse MRZ, return data as dict'''
-    mrz_data = get_mrz_data(mrz)
-
-    if mrz_data is None:
-        return None
-    else:
-        p = Person()
-        p.first_name = td1.fields()['names']
-        p.last_name = td1.fields()['surname']
-        p.date_of_birth = td1.fields()['date_of_birth']
+def parse_td1(mrz: str) -> Union[Person, None]:
+    # Parse Identity Card
+    # https://en.wikipedia.org/wiki/Machine-readable_passport
+    # Country code Issuer(3 letters)
+    country_code_issuer = mrz[2:5]
+    # Name (Surname<<Given Names)
+    name = mrz[60:90]
+    names_splitted = name.split("<<")
+    surname = names_splitted[0]
+    given_names = names_splitted[1]
+    given_names = given_names.replace("<", " ").rstrip()
+    # Date of Birth (YYMMDD)
+    birthdate_str: str = mrz[30:35]
+    # Parse to date object
+    birthdate = datetime.strptime(birthdate_str, "%y%m%d")
+    nationality = mrz[45:48]
+    p = Person()
+    p.first_name = given_names
+    p.last_name = surname
+    p.date_of_birth = birthdate
+    p.residence = f"NATION:{nationality}; ISSUER:{country_code_issuer}"
+    print(p)
+    return p

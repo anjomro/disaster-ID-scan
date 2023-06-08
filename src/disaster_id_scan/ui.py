@@ -7,8 +7,7 @@ import threading
 import easyocr
 from tkcalendar import DateEntry
 
-from disaster_id_scan.mrz import check_if_valid_mrz, get_data_from_mrz
-
+from disaster_id_scan.mrz import parse_mrz
 
 def get_available_cameras():
     camera_indexes = []
@@ -159,6 +158,20 @@ class GUI:
         reader = easyocr.Reader(['de'])
         text = reader.readtext(frame, paragraph=True)
         print(text)
+        for element in text:
+            if "<" in element[1]:
+                # Assume that it could be the MRZ, try to parse it
+                possible_mrz = element[1]
+                possible_mrz = possible_mrz.upper()
+                parsed = parse_mrz(possible_mrz)
+                if parsed is not None:
+                    # Set the values in the form
+                    self.first_name_entry.insert(0, parsed.first_name)
+                    self.last_name_entry.insert(0, parsed.last_name)
+                    self.date_of_birth_entry.set_date(parsed.date_of_birth)
+                    self.residence_entry.insert(0, parsed.residence)
+
+
 
     def open_data_folder_selector(self):
         folder_selected = filedialog.askdirectory()
@@ -188,6 +201,7 @@ class GUI:
         print("Place of Catastrophe:", place_of_catastrophe)
         print("Place of Shelter:", place_of_shelter)
         print("Date of Catastrophe:", date_of_catastrophe)
+
 
     def clear_click(self):
         self.first_name_entry.delete(0, tk.END)
