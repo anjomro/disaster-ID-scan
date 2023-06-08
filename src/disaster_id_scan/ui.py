@@ -9,6 +9,7 @@ from tkcalendar import DateEntry
 
 from disaster_id_scan.mrz import check_if_valid_mrz, get_data_from_mrz
 
+
 def get_available_cameras():
     camera_indexes = []
     for i in range(10):
@@ -17,6 +18,7 @@ def get_available_cameras():
             camera_indexes.append(i)
         cap.release()
     return camera_indexes
+
 
 class VideoStreamer:
     def __init__(self, camera_index, image_label):
@@ -48,6 +50,7 @@ class VideoStreamer:
         self.image_label.configure(image=imgtk)
         self.image_label.after(10, self.show_frame)  # Update the frame every 10 milliseconds
 
+
 class GUI:
     def __init__(self):
         self.window = tk.Tk()
@@ -72,12 +75,13 @@ class GUI:
         self.buttons_frame = tk.Frame(self.window)
         self.buttons_frame.pack()
 
-        self.button1 = ttk.Button(self.buttons_frame, text="Start video", command=self.button1_click)
-        self.button2 = ttk.Button(self.buttons_frame, text="Recognize Text", command=self.button2_click)
-        self.button3 = ttk.Button(self.buttons_frame, text="Select Data Folder", command=self.button3_click)
-        self.button1.grid(row=0, column=0, padx=5)
-        self.button2.grid(row=0, column=1, padx=5)
-        self.button3.grid(row=0, column=2, padx=5)
+        self.start_stop_video = ttk.Button(self.buttons_frame, text="Start video", command=self.start_or_stop_video)
+        self.capture_text = ttk.Button(self.buttons_frame, text="Recognize Text", command=self.capture_frame_text)
+        self.select_data_folder = ttk.Button(self.buttons_frame, text="Select Data Folder",
+                                             command=self.open_data_folder_selector)
+        self.start_stop_video.grid(row=0, column=0, padx=5)
+        self.capture_text.grid(row=0, column=1, padx=5)
+        self.select_data_folder.grid(row=0, column=2, padx=5)
 
         self.data_frame = ttk.Frame(self.window)
         self.data_frame.pack(pady=10)
@@ -133,21 +137,21 @@ class GUI:
         self.submit_button.pack(side=tk.LEFT, padx=5, pady=10)
         self.reset_button.pack(side=tk.LEFT, padx=5, pady=10)
 
-    def button1_click(self):
+    def start_or_stop_video(self):
         if not self.data_folder_selected:
             self.display_error("Please select a data folder.")
             return
 
         if self.video_streamer and self.video_streamer.is_running:
             self.video_streamer.stop()
-            self.button1.config(text="Start video")
+            self.start_stop_video.config(text="Start video")
         else:
             camera_index = int(self.camera_combobox.get())
             self.video_streamer = VideoStreamer(camera_index, self.image_label)
             self.video_streamer.start()
-            self.button1.config(text="Stop video")
+            self.start_stop_video.config(text="Stop video")
 
-    def button2_click(self):
+    def capture_frame_text(self):
         if not self.video_streamer or not self.video_streamer.is_running:
             self.display_error("Please start the video before recognizing text.")
             return
@@ -157,7 +161,7 @@ class GUI:
         text = reader.readtext(frame, paragraph=True)
         print(text)
 
-    def button3_click(self):
+    def open_data_folder_selector(self):
         folder_selected = filedialog.askdirectory()
         if folder_selected:
             self.data_folder_selected = True
@@ -192,9 +196,10 @@ class GUI:
         self.date_of_birth_entry.set_date(None)
         self.nationality_entry.delete(0, tk.END)
         self.residence_entry.delete(0, tk.END)
-        self.place_of_catastrophe_entry.delete(0, tk.END)
-        self.place_of_shelter_entry.delete(0, tk.END)
-        self.date_of_catastrophe_entry.set_date(None)
+        # Don't clear the place of catastrophe and shelter, because they are often the same
+        #self.place_of_catastrophe_entry.delete(0, tk.END)
+        #self.place_of_shelter_entry.delete(0, tk.END)
+        #self.date_of_catastrophe_entry.set_date(None)
 
     def display_error(self, message):
         self.error_label.config(text=message)
@@ -202,8 +207,10 @@ class GUI:
     def start_gui(self):
         self.window.mainloop()
 
+
 def start_gui():
     gui = GUI()
     gui.start_gui()
+
 
 start_gui()
