@@ -49,7 +49,7 @@ def parse_td1(mrz: str) -> Union[Person, None]:
     given_names = names_splitted[1]
     given_names = given_names.replace("<", " ").rstrip()
     # Date of Birth (YYMMDD)
-    birthdate_str: str = mrz[30:35]
+    birthdate_str: str = mrz[30:36]
     # Parse to date object
     birthdate = datetime.strptime(birthdate_str, "%y%m%d")
     nationality = mrz[45:48]
