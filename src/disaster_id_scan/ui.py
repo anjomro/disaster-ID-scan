@@ -42,7 +42,6 @@ class VideoStreamer:
             return
 
         _, frame = self.cap.read()
-        frame = cv2.flip(frame, 1)  # Flip the frame horizontally
         cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(cv2image)
         imgtk = ImageTk.PhotoImage(image=img)
