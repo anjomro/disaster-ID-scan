@@ -41,7 +41,7 @@ def parse_td1(mrz: str) -> Union[Person, None]:
     # Parse Identity Card
     # https://en.wikipedia.org/wiki/Machine-readable_passport
     # Country code Issuer(3 letters)
-    country_code_issuer = mrz[2:5]
+    country_code_issuer = mrz[2:5].replace("<", "")
     # Name (Surname<<Given Names)
     name = mrz[60:90]
     names_splitted = name.split("<<")
@@ -52,11 +52,12 @@ def parse_td1(mrz: str) -> Union[Person, None]:
     birthdate_str: str = mrz[30:36]
     # Parse to date object
     birthdate = datetime.strptime(birthdate_str, "%y%m%d")
-    nationality = mrz[45:48]
+    nationality = mrz[45:48].replace("<", "")
     p = Person()
     p.first_name = given_names
     p.last_name = surname
     p.date_of_birth = birthdate
-    p.residence = f"NATION:{nationality}; ISSUER:{country_code_issuer}"
+    p.residence = f"{country_code_issuer}"
+    p.nationality = nationality
     print(p)
     return p

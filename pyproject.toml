@@ -31,6 +31,7 @@ dependencies = [
   "mrz",
   "tk",
   "tkcalendar",
+  "jsonpickle",
 ]
 
 [project.urls]

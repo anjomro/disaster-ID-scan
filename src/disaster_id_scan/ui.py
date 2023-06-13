@@ -1,4 +1,5 @@
 import tkinter as tk
+from pathlib import Path
 from tkinter import ttk
 from tkinter import filedialog
 import cv2
@@ -8,6 +9,10 @@ import easyocr
 from tkcalendar import DateEntry
 
 from disaster_id_scan.mrz import parse_mrz
+from disaster_id_scan.store import Person, Registrants
+
+store = Registrants()
+
 
 def get_available_cameras():
     camera_indexes = []
@@ -165,13 +170,17 @@ class GUI:
                 possible_mrz = possible_mrz.upper()
                 parsed = parse_mrz(possible_mrz)
                 if parsed is not None:
-                    # Set the values in the form
+                    # Set the values in the form, overwrite if already set
+                    self.first_name_entry.delete(0, tk.END)
                     self.first_name_entry.insert(0, parsed.first_name)
+                    self.last_name_entry.delete(0, tk.END)
                     self.last_name_entry.insert(0, parsed.last_name)
+                    self.date_of_birth_entry.delete(0, tk.END)
                     self.date_of_birth_entry.set_date(parsed.date_of_birth)
+                    self.residence_entry.delete(0, tk.END)
                     self.residence_entry.insert(0, parsed.residence)
-
-
+                    self.nationality_entry.delete(0, tk.END)
+                    self.nationality_entry.insert(0, parsed.nationality)
 
     def open_data_folder_selector(self):
         folder_selected = filedialog.askdirectory()
@@ -179,6 +188,7 @@ class GUI:
             self.data_folder_selected = True
             self.display_error("")
             print("Selected data folder:", folder_selected)
+            store.set_path(Path(folder_selected))
         else:
             self.data_folder_selected = False
             self.display_error("Please select a data folder.")
@@ -193,6 +203,17 @@ class GUI:
         place_of_shelter = self.place_of_shelter_entry.get()
         date_of_catastrophe = self.date_of_catastrophe_entry.get_date()
 
+        human = Person()
+
+        human.first_name = first_name
+        human.last_name = last_name
+        human.date_of_birth = date_of_birth
+        human.nationality = nationality
+        human.residence = residence
+        human.place_of_catastrophe = place_of_catastrophe
+        human.place_of_shelter = place_of_shelter
+        human.date_of_catastrophe = date_of_catastrophe
+
         print("First Name:", first_name)
         print("Last Name:", last_name)
         print("Date of Birth:", date_of_birth)
@@ -202,6 +223,8 @@ class GUI:
         print("Place of Shelter:", place_of_shelter)
         print("Date of Catastrophe:", date_of_catastrophe)
 
+        store.add(human)
+        store.save()
 
     def clear_click(self):
         self.first_name_entry.delete(0, tk.END)
@@ -210,9 +233,9 @@ class GUI:
         self.nationality_entry.delete(0, tk.END)
         self.residence_entry.delete(0, tk.END)
         # Don't clear the place of catastrophe and shelter, because they are often the same
-        #self.place_of_catastrophe_entry.delete(0, tk.END)
-        #self.place_of_shelter_entry.delete(0, tk.END)
-        #self.date_of_catastrophe_entry.set_date(None)
+        # self.place_of_catastrophe_entry.delete(0, tk.END)
+        # self.place_of_shelter_entry.delete(0, tk.END)
+        # self.date_of_catastrophe_entry.set_date(None)
 
     def display_error(self, message):
         self.error_label.config(text=message)
