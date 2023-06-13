@@ -35,9 +35,9 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/unknown/disaster-id-scan#readme"
-Issues = "https://github.com/unknown/disaster-id-scan/issues"
-Source = "https://github.com/unknown/disaster-id-scan"
+Documentation = "https://github.com/anjomro/disaster-id-scan#readme"
+Issues = "https://github.com/anjomro/disaster-id-scan/issues"
+Source = "https://github.com/anjomro/disaster-id-scan"
 
 [project.scripts]
 disaster-id-scan = "disaster_id_scan.cli:disaster_id_scan"
