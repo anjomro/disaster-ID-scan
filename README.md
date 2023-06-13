@@ -18,19 +18,12 @@
 pip install disaster-id-scan
 ```
 
-## Usage
+## Usage (GUI)
 
-Currently the scanner only features the scanning mode. It can be started as follows, given that the package is [installed](#installation):
-
-
-```console
-disaster-id-scan scan
-```
-
-This will use the first camera available. To select a specific camera, use the `--cam` option:
+You can start the GUI by simply running the following command:
 
 ```console
-disaster-id-scan scan --cam 1
+disaster-id-scan
 ```
 
 ## License

@@ -28,6 +28,10 @@ dependencies = [
   "click",
   "easyocr",
   "opencv-python",
+  "mrz",
+  "tk",
+  "tkcalendar",
+  "jsonpickle",
 ]
 
 [project.urls]
