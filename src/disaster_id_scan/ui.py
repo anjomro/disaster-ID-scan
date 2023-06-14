@@ -72,7 +72,8 @@ class GUI:
         self.camera_label = ttk.Label(self.frame, text="Camera:")
         self.camera_label.grid(row=0, column=0, padx=5)
         self.camera_combobox = ttk.Combobox(self.frame, values=self.camera_indexes, state="readonly")
-        self.camera_combobox.current(0)
+        if self.camera_indexes:
+            self.camera_combobox.current(self.camera_indexes[0])
         self.camera_combobox.grid(row=0, column=1, padx=5)
 
         self.buttons_frame = tk.Frame(self.window)
@@ -149,7 +150,11 @@ class GUI:
             self.video_streamer.stop()
             self.start_stop_video.config(text="Start video")
         else:
-            camera_index = int(self.camera_combobox.get())
+            try:
+                camera_index = int(self.camera_combobox.get())
+            except ValueError:
+                self.display_error("Please check that a camera is available and selected.")
+                return
             self.video_streamer = VideoStreamer(camera_index, self.image_label)
             self.video_streamer.start()
             self.start_stop_video.config(text="Stop video")
