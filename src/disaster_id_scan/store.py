@@ -22,12 +22,24 @@ class Person:
     date_of_catastrope: date
     time_of_registration: datetime
 
+    def __init__(self):
+        # Set all values to None
+        self.first_name = None
+        self.last_name = None
+        self.date_of_birth = None
+        self.nationality = None
+        self.residence = None
+        self.place_of_catastrophe = None
+        self.place_of_shelter = None
+        self.date_of_catastrope = None
+        # Set time of registration to now
+        self.time_of_registration = datetime.now()
+
     def __str__(self):
         return f"""-- Person --
 Name: {self.last_name}
 First Name: {self.first_name}
 Date of Birth: {self.date_of_birth}"""
-
 
 class Registrants:
     '''
@@ -47,10 +59,16 @@ class Registrants:
     def get_savepoint_path(self) -> Path:
         return self.save_path.joinpath(Registrants.json_filename)
 
+    def get_name_list(self) -> list[str]:
+        return [f"{person.last_name}, {person.first_name} #{id}" for id, person in enumerate(self.registrants)]
+
+    def get_person_by_list_entry(self, list_entry: str) -> Person:
+        id = int(list_entry.split("#")[1])
+        return self.registrants[id]
+
     def set_path(self, path: Path):
         self.save_path = path
         # TODO: Check if json file exists, if so load it
-
 
     def save(self):
         with open(self.get_savepoint_path(), "w") as f:

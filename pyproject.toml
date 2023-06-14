@@ -32,6 +32,7 @@ dependencies = [
   "tk",
   "tkcalendar",
   "jsonpickle",
+  "sv-ttk",
 ]
 
 [project.urls]
