@@ -247,7 +247,7 @@ class GUI:
 
         frame = self.video_streamer.cap.read()[1]
         reader = easyocr.Reader(['de'])
-        text = reader.readtext(frame, paragraph=True)
+        text = reader.readtext(frame, paragraph=True, allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<')
         print(text)
         for element in text:
             if "<" in element[1]:
