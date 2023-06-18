@@ -12,8 +12,6 @@ from tkcalendar import DateEntry
 from disaster_id_scan.mrz import parse_mrz
 from disaster_id_scan.store import Person, Registrants
 
-store = Registrants()
-
 
 def get_available_cameras():
     camera_indexes = []
@@ -117,11 +115,11 @@ class VideoStreamer:
 
 class GUI:
     def __init__(self):
-
-        self.loaded_person : Person = None
+        self.loaded_person_id: int = None
         self.window = tk.Tk()
         self.window.title("Disaster ID Scan")
         # self.style = ttk.Style("cosmo")
+        self.store = Registrants()
 
         self.frame = tk.LabelFrame(self.window, text="Camera")
         self.frame.grid(row=0, column=0, rowspan=4, padx=10, pady=20)
@@ -137,7 +135,6 @@ class GUI:
 
         self.camera_indexes = get_available_cameras()
 
-
         self.camera_label = ttk.Label(self.buttons_frame, text="Camera:")
         self.camera_label.grid(row=0, column=1, padx=5, sticky="e")
         self.camera_combobox = ttk.Combobox(self.buttons_frame, values=[str(idx) for idx in self.camera_indexes],
@@ -145,7 +142,6 @@ class GUI:
         if self.camera_indexes:
             self.camera_combobox.current(self.camera_indexes[0])
         self.camera_combobox.grid(row=0, column=2, pady=5)
-
 
         self.start_stop_video = ttk.Button(self.buttons_frame, text="Start video", command=self.start_or_stop_video)
         self.capture_text = ttk.Button(self.buttons_frame, text="Recognize Text", command=self.capture_frame_text)
@@ -160,7 +156,7 @@ class GUI:
         self.load_frame.grid(row=1, column=3, columnspan=2, pady=10, padx=10, ipadx=5, ipady=5, sticky="nsew")
         # Create Combobox to select existing person
         self.load_frame.columnconfigure(0, weight=1)
-        self.person_combobox = ttk.Combobox(self.load_frame, values=store.get_name_list(), state="readonly")
+        self.person_combobox = ttk.Combobox(self.load_frame, values=self.store.get_name_list(), state="readonly")
         self.person_combobox.grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
         self.load_person_button = ttk.Button(self.load_frame, text="Load Person", command=self.load_person_from_list)
         self.load_person_button.grid(row=0, column=2, padx=5, pady=5, sticky="e")
@@ -215,10 +211,19 @@ class GUI:
         self.video_streamer = None
         self.data_folder_selected = False
 
-        self.submit_button = ttk.Button(self.data_frame, text="Submit", command=self.submit_click)
-        self.reset_button = ttk.Button(self.data_frame, text="Reset", command=self.clear_form)
-        self.submit_button.grid(row=4, column=1, pady=20)
-        self.reset_button.grid(row=4, column=2)
+        self.create_button = ttk.Button(self.data_frame, text="Create", command=self.create_person)
+        self.save_changes_button = ttk.Button(self.data_frame, text="Save Changes", command=self.save_changes)
+        self.clear_button = ttk.Button(self.data_frame, text="Reset", command=self.clear_form)
+        self.delete_button = ttk.Button(self.data_frame, text="Delete", command=self.delete_person)
+
+        self.create_button.grid(row=4, column=0, pady=20)
+        self.save_changes_button.grid(row=4, column=1, pady=20)
+        self.clear_button.grid(row=4, column=2)
+        self.delete_button.grid(row=4, column=3)
+
+        # Save changes and delete buttons are disabled until a person is loaded
+        self.save_changes_button.config(state="disabled")
+        self.delete_button.config(state="disabled")
 
     def start_or_stop_video(self):
         if not self.data_folder_selected:
@@ -259,24 +264,23 @@ class GUI:
                 if parsed is not None:
                     # Set the values in the form
                     self.set_person(parsed)
-
+                    self.set_buttons_enabled(False)
     def open_data_folder_selector(self):
         folder_selected = filedialog.askdirectory()
         if folder_selected:
             self.data_folder_selected = True
             self.display_error("")
             print("Selected data folder:", folder_selected)
-            store.set_path(Path(folder_selected))
+            self.store.set_path(Path(folder_selected))
             self.update_person_combobox()
         else:
             self.data_folder_selected = False
             self.display_error("Please select a data folder.")
 
     def update_person_combobox(self):
-        self.person_combobox['values'] = store.get_name_list()
+        self.person_combobox['values'] = self.store.get_name_list()
 
     def get_person_from_form(self) -> Person:
-
         human = Person()
         human.first_name = self.first_name_entry.get()
         human.last_name = self.last_name_entry.get()
@@ -288,12 +292,23 @@ class GUI:
         human.date_of_catastrophe = self.date_of_catastrophe_entry.get_date()
         return human
 
-    def submit_click(self):
+    def create_person(self):
         human = self.get_person_from_form()
-        store.add(human)
-        store.save()
+        self.store.add(human)
+        self.store.save()
         self.clear_form()
         self.update_person_combobox()
+
+    def save_changes(self):
+        human = self.get_person_from_form()
+        self.store.update(self.loaded_person_id, human)
+        self.update_person_combobox()
+
+    def delete_person(self):
+        self.store.delete(self.loaded_person_id)
+        self.clear_form()
+        self.update_person_combobox()
+        self.set_buttons_enabled(False)
 
     def clear_form(self):
         self.first_name_entry.delete(0, tk.END)
@@ -305,6 +320,7 @@ class GUI:
         # self.place_of_catastrophe_entry.delete(0, tk.END)
         # self.place_of_shelter_entry.delete(0, tk.END)
         # self.date_of_catastrophe_entry.set_date(None)
+        self.set_buttons_enabled(False)
 
     def set_text(self, entry: tk.Entry, text: str):
         # Sets the text of an entry, removes old text
@@ -331,10 +347,21 @@ class GUI:
     def load_person_from_list(self):
         # Get the choosen list entry from combobox
         selected_person = self.person_combobox.get()
-        # Get the person object from the store
-        person = store.get_person_by_list_entry(selected_person)
+        # Get the person object from the self.store
+        person_id, person = self.store.get_person_by_list_entry(selected_person)
         # Set the values in the form
         self.set_person(person)
+        # Set the loaded person id
+        self.loaded_person_id = person_id
+        # Enable the save and delete button
+        self.set_buttons_enabled(True)
+
+    def set_buttons_enabled(self, enabled: bool):
+        '''
+        Enables or disables the save and delete button. They should only be enabled if a person is loaded.
+        '''
+        self.save_changes_button.config(state=tk.NORMAL if enabled else tk.DISABLED)
+        self.delete_button.config(state=tk.NORMAL if enabled else tk.DISABLED)
 
     def display_error(self, message):
         self.error_label.config(text=message)

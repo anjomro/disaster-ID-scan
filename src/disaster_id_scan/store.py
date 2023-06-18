@@ -41,6 +41,7 @@ Name: {self.last_name}
 First Name: {self.first_name}
 Date of Birth: {self.date_of_birth}"""
 
+
 class Registrants:
     '''
     Class to hold a list of registrants.
@@ -53,8 +54,12 @@ class Registrants:
     def __init__(self):
         self.registrants = []
 
-    def add(self, person: Person):
+    def add(self, person: Person) -> int:
+        '''
+        Add a person to the list of registrants, return the id of the person.
+        '''
         self.registrants.append(person)
+        return len(self.registrants) - 1
 
     def get_savepoint_path(self) -> Path:
         return self.save_path.joinpath(Registrants.json_filename)
@@ -62,9 +67,18 @@ class Registrants:
     def get_name_list(self) -> list[str]:
         return [f"{person.last_name}, {person.first_name} #{id}" for id, person in enumerate(self.registrants)]
 
-    def get_person_by_list_entry(self, list_entry: str) -> Person:
-        id = int(list_entry.split("#")[1])
-        return self.registrants[id]
+    def get_person_by_list_entry(self, list_entry: str) -> (int, Person):
+        person_id = int(list_entry.split("#")[1])
+        return person_id, self.registrants[person_id]
+
+    def get_person_by_id(self, person_id: int) -> Person:
+        return self.registrants[person_id]
+
+    def update(self, person_id: int, person: Person):
+        self.registrants[person_id] = person
+
+    def delete(self, person_id: int):
+        self.registrants.pop(person_id)
 
     def set_path(self, path: Path):
         self.save_path = path
