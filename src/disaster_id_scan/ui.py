@@ -313,9 +313,16 @@ class GUI:
 
 
     def delete_person(self):
+        selected_id, _ = self.store.get_person_by_list_entry(self.person_combobox.get())
         self.store.delete(self.loaded_person_id)
         self.clear_form()
         self.update_person_combobox()
+        if self.loaded_person_id == selected_id:
+            self.person_combobox.current(0)
+        elif self.loaded_person_id > selected_id:
+            self.person_combobox.current(self.loaded_person_id - 1)
+        else:
+            self.person_combobox.current(self.loaded_person_id)
         self.set_buttons_enabled(False)
 
     def clear_form(self):
