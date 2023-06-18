@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2023-present anjomro <py@anjomro.de>
 #
 # SPDX-License-Identifier: EUPL-1.2
+from csv import DictWriter
 from datetime import date, datetime
 from pathlib import Path
 
@@ -51,6 +52,8 @@ class Registrants:
     save_path: Path
     json_filename: str = "disaster-id-scan_autosave.json"
 
+    export_filename: str = "disaster-id-scan_export.csv"
+
     def __init__(self):
         self.registrants = []
 
@@ -63,6 +66,9 @@ class Registrants:
 
     def get_savepoint_path(self) -> Path:
         return self.save_path.joinpath(Registrants.json_filename)
+
+    def get_export_path(self) -> Path:
+        return self.save_path.joinpath(Registrants.export_filename)
 
     def get_name_list(self) -> list[str]:
         return [f"{person.last_name}, {person.first_name} #{id}" for id, person in enumerate(self.registrants)]
@@ -90,3 +96,25 @@ class Registrants:
     def save(self):
         with open(self.get_savepoint_path(), "w") as f:
             f.write(jsonpickle.encode(self.registrants))
+        # Export to csv (Xenios-Format? Whatever...)
+        # Name, Vorname, geb, Alter(ca.), Nationalitaet, Staat, Unterkunft,
+
+        with open(self.get_export_path(), "w") as f:
+            writer = DictWriter(f, fieldnames=["Name", "Vorname", "geb", "Alter(ca.)", "Nationalitaet", "Staat",
+                                               "Unterkunft", "Katastrophenort", "Katastrophentag", "Registrierungszeit"])
+            writer.writeheader()
+            for person in self.registrants:
+                # Calculate age by delta between now and date of birth
+                age = (datetime.now() - person.date_of_birth).days // 365
+                writer.writerow({
+                    "Name": person.last_name,
+                    "Vorname": person.first_name,
+                    "geb": person.date_of_birth.strftime("%d.%m.%Y"),
+                    "Alter(ca.)": age,
+                    "Nationalitaet": person.nationality,
+                    "Staat": person.residence,
+                    "Unterkunft": person.place_of_shelter,
+                    "Katastrophenort": person.place_of_catastrophe,
+                    "Katastrophentag": person.date_of_catastrope.strftime("%d.%m.%Y"),
+                    "Registrierungszeit": person.time_of_registration.strftime("%d.%m.%Y %H:%M:%S")
+                })
