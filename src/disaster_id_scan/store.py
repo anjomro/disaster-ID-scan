@@ -92,6 +92,8 @@ class Registrants:
         if self.get_savepoint_path().exists():
             with open(self.get_savepoint_path(), "r") as f:
                 self.registrants = jsonpickle.decode(f.read())
+        # Save immediately, to keep export file up to date
+        self.save()
 
     def save(self):
         with open(self.get_savepoint_path(), "w") as f:
