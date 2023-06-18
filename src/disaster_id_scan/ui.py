@@ -304,8 +304,13 @@ class GUI:
 
     def save_changes(self):
         human = self.get_person_from_form()
+        # Get the ID of the person that is currently loaded
+        person_id, _ = self.store.get_person_by_list_entry(self.person_combobox.get())
         self.store.update(self.loaded_person_id, human)
         self.update_person_combobox()
+        # Set the combobox to the person that was just edited
+        self.person_combobox.current(person_id)
+
 
     def delete_person(self):
         self.store.delete(self.loaded_person_id)
