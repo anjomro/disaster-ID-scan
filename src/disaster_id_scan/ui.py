@@ -142,7 +142,6 @@ class GUI:
         self.camera_label.grid(row=0, column=1, padx=5, sticky="e")
         self.camera_combobox = ttk.Combobox(self.buttons_frame, values=[str(idx) for idx in self.camera_indexes],
                                             state="readonly")
-        self.camera_combobox.current(0)
         if self.camera_indexes:
             self.camera_combobox.current(self.camera_indexes[0])
         self.camera_combobox.grid(row=0, column=2, pady=5)
