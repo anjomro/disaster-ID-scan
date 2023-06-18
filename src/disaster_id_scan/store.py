@@ -104,8 +104,8 @@ class Registrants:
                                                "Unterkunft", "Katastrophenort", "Katastrophentag", "Registrierungszeit"])
             writer.writeheader()
             for person in self.registrants:
-                # Calculate age by delta between now and date of birth
-                age = (datetime.now() - person.date_of_birth).days // 365
+                # Calculate approximate age
+                age = datetime.now().year - person.date_of_birth.year
                 writer.writerow({
                     "Name": person.last_name,
                     "Vorname": person.first_name,
