@@ -117,6 +117,8 @@ class VideoStreamer:
 
 class GUI:
     def __init__(self):
+
+        self.loaded_person : Person = None
         self.window = tk.Tk()
         self.window.title("Disaster ID Scan")
         # self.style = ttk.Style("cosmo")
@@ -266,6 +268,7 @@ class GUI:
             self.display_error("")
             print("Selected data folder:", folder_selected)
             store.set_path(Path(folder_selected))
+            self.update_person_combobox()
         else:
             self.data_folder_selected = False
             self.display_error("Please select a data folder.")

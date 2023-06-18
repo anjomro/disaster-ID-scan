@@ -48,7 +48,7 @@ class Registrants:
     registrants: list[Person]
 
     save_path: Path
-    json_filename: str = "data_savepoint.json"
+    json_filename: str = "disaster-id-scan_autosave.json"
 
     def __init__(self):
         self.registrants = []
@@ -68,8 +68,11 @@ class Registrants:
 
     def set_path(self, path: Path):
         self.save_path = path
-        # TODO: Check if json file exists, if so load it
+        # Check if json file exists, if so load it
+        if self.get_savepoint_path().exists():
+            with open(self.get_savepoint_path(), "r") as f:
+                self.registrants = jsonpickle.decode(f.read())
 
     def save(self):
         with open(self.get_savepoint_path(), "w") as f:
-            f.write(jsonpickle.encode(self))
+            f.write(jsonpickle.encode(self.registrants))
