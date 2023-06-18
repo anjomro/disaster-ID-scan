@@ -3,7 +3,6 @@ from datetime import date, datetime
 from typing import Union
 
 import easyocr
-from mrz.base.errors import FieldError
 
 from disaster_id_scan.store import Person
 
