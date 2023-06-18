@@ -82,9 +82,11 @@ class Registrants:
 
     def update(self, person_id: int, person: Person):
         self.registrants[person_id] = person
+        self.save()
 
     def delete(self, person_id: int):
         self.registrants.pop(person_id)
+        self.save()
 
     def set_path(self, path: Path):
         self.save_path = path
@@ -107,16 +109,19 @@ class Registrants:
             writer.writeheader()
             for person in self.registrants:
                 # Calculate approximate age
-                age = datetime.now().year - person.date_of_birth.year
+                if person.date_of_birth is not None:
+                    age = datetime.now().year - person.date_of_birth.year
+                else:
+                    age = None
                 writer.writerow({
                     "Name": person.last_name,
                     "Vorname": person.first_name,
-                    "geb": person.date_of_birth.strftime("%d.%m.%Y"),
+                    "geb": person.date_of_birth.strftime("%d.%m.%Y") if person.date_of_birth is not None else None,
                     "Alter(ca.)": age,
                     "Nationalitaet": person.nationality,
                     "Staat": person.residence,
                     "Unterkunft": person.place_of_shelter,
                     "Katastrophenort": person.place_of_catastrophe,
-                    "Katastrophentag": person.date_of_catastrope.strftime("%d.%m.%Y"),
-                    "Registrierungszeit": person.time_of_registration.strftime("%d.%m.%Y %H:%M:%S")
+                    "Katastrophentag": person.date_of_catastrope.strftime("%d.%m.%Y") if person.date_of_catastrope is not None else None,
+                    "Registrierungszeit": person.time_of_registration.strftime("%d.%m.%Y %H:%M:%S") if person.time_of_registration is not None else None
                 })
